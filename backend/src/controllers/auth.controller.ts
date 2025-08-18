@@ -43,3 +43,39 @@ export const login = async (req: Request, res: Response) => {
 
     return res.status(200).json({ token });
 };
+
+export const updatePassword = async (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
+      id: number;
+    };
+
+    // Get current user
+    const user = await User.findByPk(decoded.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const { oldPassword, newPassword } = req.body;
+
+    // Check old password
+    const valid = await bcrypt.compare(oldPassword, user.password);
+    if (!valid) {
+      return res.status(403).json({ message: "Old password is incorrect" });
+    }
+
+    // Hash new password and update
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+
+    res.status(200).json({ message: "Password updated successfully" });
+  } catch (err) {
+    res.status(401).json({ message: "Invalid or expired token" });
+  }
+};
