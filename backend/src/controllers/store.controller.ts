@@ -4,6 +4,7 @@ import { StoreReview } from "../models/storeReview.model";
 import { User } from "../models/user.model";
 import { AuthRequest } from "../middlewares/auth.middlewares";
 import { Op } from "sequelize";
+import sequelize from "../utils/db";
 
 export const createStoreReview = async (req: AuthRequest, res: Response) => {
   try {
@@ -72,6 +73,51 @@ export const searchStores = async (req: Request, res: Response) => {
     });
 
     return res.status(200).json(stores);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Something went wrong." });
+  }
+};
+
+export const getStoreListings = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.userId) {
+      return res.status(401).json({ message: "Unauthenticated" });
+    }
+
+    const stores = await Store.findAll();
+
+    const result = await Promise.all(
+      stores.map(async (store) => {
+        // overall average rating
+        const avg = (await StoreReview.findAll({
+          where: { storeId: store.id },
+          attributes: [[sequelize.fn("AVG", sequelize.col("rating")), "avgRating"]],
+          raw: true,
+        })) as any[];
+
+        const overallRating = Number(avg[0].avgRating || 0).toFixed(2);
+
+        // check whether THIS user has a review for this store
+        const userReview = await StoreReview.findOne({
+          where: {
+            storeId: store.id,
+            userId: req.userId,
+          },
+        });
+
+        return {
+          name: store.name,
+          address: store.address,
+          overallRating,
+          userRating: userReview ? userReview.rating : null,
+          canSubmit: !userReview,
+          canModify: !!userReview,
+        };
+      })
+    );
+
+    return res.status(200).json(result);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Something went wrong." });
