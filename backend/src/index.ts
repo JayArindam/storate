@@ -3,7 +3,11 @@ import express from "express";
 import authRoutes from "./routes/auth.routes";
 import testRoutes from "./routes/test.routes";
 import rateLimit from "express-rate-limit";
-import adminRoutes from "./routes/admin.routes"
+import adminRoutes from "./routes/admin.routes";
+import storeRoutes from "./routes/store.routes";
+
+import "./associations";
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -21,6 +25,7 @@ app.use(limiter);
 app.use("/api", testRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/store", storeRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
