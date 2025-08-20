@@ -3,6 +3,7 @@ import { Store } from "../models/store.model";
 import { StoreReview } from "../models/storeReview.model";
 import { User } from "../models/user.model";
 import { AuthRequest } from "../middlewares/auth.middlewares";
+import { Op } from "sequelize";
 
 export const createStoreReview = async (req: AuthRequest, res: Response) => {
   try {
@@ -49,6 +50,30 @@ export const createStoreReview = async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error(error);
+    return res.status(500).json({ message: "Something went wrong." });
+  }
+};
+
+export const searchStores = async (req: Request, res: Response) => {
+  try {
+    const { query } = req.query; // e.g. /api/store/search?query=dan
+
+    if (!query) {
+      return res.status(400).json({ message: "Search query is required" });
+    }
+
+    const stores = await Store.findAll({
+      where: {
+        name: {
+          // case-insensitive match / LIKE %query%
+          [Op.like]: `%${query}%`,
+        },
+      },
+    });
+
+    return res.status(200).json(stores);
+  } catch (err) {
+    console.error(err);
     return res.status(500).json({ message: "Something went wrong." });
   }
 };
