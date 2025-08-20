@@ -43,3 +43,17 @@ export const authorizeAdmin = async (
   }
   next();
 };
+
+export const authorizeStoreOwner = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  const user = await User.findByPk(req.userId);
+  if (!user || user.role !== "store owner") {
+    return res
+      .status(403)
+      .json({ message: "Forbidden: Store owners only" });
+  }
+  next();
+};

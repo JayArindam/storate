@@ -9,3 +9,6 @@ Store.belongsTo(User, { foreignKey: "ownerId" });
 // 1 store -> many reviews
 Store.hasMany(StoreReview, { foreignKey: "storeId" });
 StoreReview.belongsTo(Store, { foreignKey: "storeId" });
+
+User.hasMany(StoreReview, { foreignKey: "userId" });
+StoreReview.belongsTo(User, { foreignKey: "userId" });

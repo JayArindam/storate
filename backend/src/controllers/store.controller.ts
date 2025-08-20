@@ -123,3 +123,43 @@ export const getStoreListings = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({ message: "Something went wrong." });
   }
 };
+
+
+export const storeOwnerDash = async (req: AuthRequest, res: Response) => {
+  try {
+    // find the store that belongs to the logged in owner
+    const store = await Store.findOne({ where: { ownerId: req.userId } });
+
+    if (!store) {
+      return res.status(404).json({ message: "Store not found" });
+    }
+
+    // get users that submitted reviews for this store
+    const reviews = await StoreReview.findAll({
+      where: { storeId: store.id },
+      include: [{ model: User, attributes: ["name", "email"] }],
+    });
+
+    // calculate average
+    const avg = (await StoreReview.findAll({
+      where: { storeId: store.id },
+      attributes: [[sequelize.fn("AVG", sequelize.col("rating")), "avgRating"]],
+      raw: true,
+    })) as any[];
+
+    const averageRating = Number(avg[0].avgRating || 0).toFixed(2);
+
+    // List of users who submitted
+    const users = reviews.map((r) => ({
+      name: (r as any).User.name,
+      email: (r as any).User.email,
+      rating: r.rating,
+      review: r.review,
+    }));
+
+    return res.status(200).json({ users, averageRating });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Something went wrong." });
+  }
+};
