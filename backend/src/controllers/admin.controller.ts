@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import { User } from "../models/user.model";
 import { AuthRequest } from "../middlewares/auth.middlewares";
 import { Store } from "../models/store.model";
+import { StoreReview } from "../models/storeReview.model";
 
 export const createUserByAdmin = async (req: AuthRequest, res: Response) => {
   const { name, email, password, address, role } = req.body;
@@ -71,6 +72,28 @@ export const createStore = async (req: Request, res: Response) => {
     });
   } catch (err) {
     console.error(err);
+    return res.status(500).json({ message: "Something went wrong." });
+  }
+};
+
+export const adminDash = async (req: Request, res: Response) => {
+  try {
+    // Total users
+    const userCount = await User.count();
+
+    // Total stores
+    const storeCount = await Store.count();
+
+    // Total submitted ratings
+    const totalRatings = await StoreReview.count();
+
+    return res.status(200).json({
+      userCount,
+      storeCount,
+      totalRatings,
+    });
+  } catch (error) {
+    console.error(error);
     return res.status(500).json({ message: "Something went wrong." });
   }
 };
