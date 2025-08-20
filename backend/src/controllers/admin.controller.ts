@@ -97,3 +97,33 @@ export const adminDash = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Something went wrong." });
   }
 };
+
+import sequelize from "../utils/db";
+
+export const getAllStoresForAdmin = async (req: Request, res: Response) => {
+  try {
+    const stores = await Store.findAll({ include: [{ model: User }] });
+
+    const result = await Promise.all(
+      stores.map(async (store) => {
+        const avg = (await StoreReview.findAll({
+          where: { storeId: store.id },
+          attributes: [[sequelize.fn("AVG", sequelize.col("rating")), "avgRating"]],
+          raw: true,
+        })) as any[];
+
+        return {
+          name: store.name,
+          email: (store as any).User.email,
+          address: store.address,
+          averageRating: Number(avg[0].avgRating || 0).toFixed(2),
+        };
+      })
+    );
+
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Something went wrong." });
+  }
+};
