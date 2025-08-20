@@ -127,3 +127,47 @@ export const getAllStoresForAdmin = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Something went wrong." });
   }
 };
+
+export const getAllUsersForAdmin = async (req: Request, res: Response) => {
+  try {
+    const users = await User.findAll();
+
+    const result = await Promise.all(
+      users.map(async (user) => {
+        // default payload
+        const userData: any = {
+          name: user.name,
+          email: user.email,
+          address: user.address,
+          role: user.role,
+        };
+
+        // If the user is a store owner, get average store rating
+        if (user.role === "store owner") {
+          const store = await Store.findOne({ where: { ownerId: user.id } });
+
+          if (store) {
+            const avg = (await StoreReview.findAll({
+              where: { storeId: store.id },
+              attributes: [
+                [sequelize.fn("AVG", sequelize.col("rating")), "avgRating"],
+              ],
+              raw: true,
+            })) as any[];
+
+            userData.rating = Number(avg[0].avgRating || 0).toFixed(2);
+          } else {
+            userData.rating = "0.00";
+          }
+        }
+
+        return userData;
+      })
+    );
+
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Something went wrong." });
+  }
+};
